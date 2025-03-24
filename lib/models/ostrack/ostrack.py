@@ -30,9 +30,9 @@ class OSTrack(nn.Module):
 
         self.aux_loss = aux_loss
         self.head_type = head_type
-        if head_type == "CORNER" or head_type == "CENTER":
-            self.feat_sz_s = int(box_head.feat_sz)
-            self.feat_len_s = int(box_head.feat_sz ** 2)
+        #if head_type == "CORNER" or head_type == "CENTER":
+        self.feat_sz_s = int(box_head.feat_sz)
+        self.feat_len_s = int(box_head.feat_sz ** 2)
 
         if self.aux_loss:
             self.box_head = _get_clones(self.box_head, 6)
@@ -88,6 +88,12 @@ class OSTrack(nn.Module):
                    'size_map': size_map,
                    'offset_map': offset_map}
             return out
+        elif self.head_type == "TRANSFORMER":
+            # run the Transformer head
+            outputs_coord = self.box_head(opt_feat)
+            outputs_coord_new = outputs_coord.view(bs, Nq, 4)
+            out = {'pred_boxes': outputs_coord_new}
+            return out
         else:
             raise NotImplementedError
 
@@ -104,7 +110,7 @@ def build_ostrack(cfg, training=True):
         backbone = vit_base_patch16_224(pretrained, drop_path_rate=cfg.TRAIN.DROP_PATH_RATE)
         hidden_dim = backbone.embed_dim
         patch_start_index = 1
-
+    
     elif cfg.MODEL.BACKBONE.TYPE == 'vit_base_patch16_224_ce':
         backbone = vit_base_patch16_224_ce(pretrained, drop_path_rate=cfg.TRAIN.DROP_PATH_RATE,
                                            ce_loc=cfg.MODEL.BACKBONE.CE_LOC,
@@ -121,7 +127,6 @@ def build_ostrack(cfg, training=True):
 
         hidden_dim = backbone.embed_dim
         patch_start_index = 1
-
     else:
         raise NotImplementedError
 

@@ -221,6 +221,48 @@ class MLP(nn.Module):
         return x
 
 
+class TransformerHead(nn.Module):
+    def __init__(self, inplanes, num_layers, num_heads, hidden_dim, feat_sz,stride):
+        super().__init__()
+        self.feat_sz = feat_sz
+        self.stride = stride
+        self.img_sz = self.feat_sz * self.stride
+        self.transformer = nn.Transformer(
+            d_model=hidden_dim,
+            nhead=num_heads,
+            num_encoder_layers=num_layers,
+            num_decoder_layers=num_layers,
+        )
+        self.fc = nn.Linear(hidden_dim, 4)  # 输出4个值（目标框的坐标）
+
+    def forward(self, x):
+        # 假设输入 x 的形状为 (B, C, H, W)
+        B, C, H, W = x.shape
+        x = x.view(B, C, -1).permute(2, 0, 1)  # 转换为 (HW, B, C)
+        x = self.transformer(x, x)  # Transformer 编码
+        x = x.mean(dim=0)  # 平均池化
+        x = self.fc(x)  # 输出目标框
+        return x
+
+
+class MultiTaskHead(nn.Module):
+    def __init__(self, inplanes, hidden_dim, feat_sz,stride):
+        super().__init__()
+        self.feat_sz = feat_sz
+        self.stride = stride
+        self.img_sz = self.feat_sz * self.stride
+        self.box_fc = nn.Linear(hidden_dim, 4)  # 预测目标框
+        self.class_fc = nn.Linear(hidden_dim, 2)  # 预测目标类别（假设有2类）
+
+    def forward(self, x):
+        # 假设输入 x 的形状为 (B, C, H, W)
+        B, C, H, W = x.shape
+        x = x.view(B, C, -1).mean(dim=-1)  # 平均池化
+        pred_boxes = self.box_fc(x)
+        pred_classes = self.class_fc(x)
+        return pred_boxes, pred_classes
+
+
 def build_box_head(cfg, hidden_dim):
     stride = cfg.MODEL.BACKBONE.STRIDE
 
@@ -244,5 +286,26 @@ def build_box_head(cfg, hidden_dim):
         center_head = CenterPredictor(inplanes=in_channel, channel=out_channel,
                                       feat_sz=feat_sz, stride=stride)
         return center_head
+    elif cfg.MODEL.HEAD.TYPE == "TRANSFORMER":
+        feat_sz = int(cfg.DATA.SEARCH.SIZE / stride)
+        transformer_head = TransformerHead(
+            inplanes=hidden_dim,
+            num_layers=cfg.MODEL.HEAD.NUM_LAYERS,
+            num_heads=cfg.MODEL.HEAD.NUM_HEADS,
+            hidden_dim=hidden_dim,
+            feat_sz=feat_sz,
+            stride=stride,
+
+        )
+        return transformer_head
+    elif cfg.MODEL.HEAD.TYPE == "MULTI_TASK":
+        feat_sz = int(cfg.DATA.SEARCH.SIZE / stride)
+        multi_task_head = MultiTaskHead(
+            inplanes=hidden_dim,
+            hidden_dim=hidden_dim,
+            feat_sz=feat_sz,
+            stride=stride,
+        )
+        return multi_task_head
     else:
         raise ValueError("HEAD TYPE %s is not supported." % cfg.MODEL.HEAD_TYPE)
