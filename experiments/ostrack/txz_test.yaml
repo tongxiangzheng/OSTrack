@@ -5,10 +5,11 @@ DATA:
   - 0.456
   - 0.406
   SEARCH:
-    CENTER_JITTER: 4.5
-    FACTOR: 5.0
-    SCALE_JITTER: 0.5
-    SIZE: 384
+    CENTER_JITTER: 3
+    FACTOR: 4.0
+    SCALE_JITTER: 0.25
+    SIZE: 256
+    NUMBER: 1
   STD:
   - 0.229
   - 0.224
@@ -17,7 +18,7 @@ DATA:
     CENTER_JITTER: 0
     FACTOR: 2.0
     SCALE_JITTER: 0
-    SIZE: 192
+    SIZE: 128
 #  TRAIN:
 #    DATASETS_NAME:
 #      - GOT10K_train_full
@@ -61,6 +62,8 @@ MODEL:
 TRAIN:
   BACKBONE_MULTIPLIER: 0.1
   DROP_PATH_RATE: 0.1
+  CE_START_EPOCH: 20  # candidate elimination start epoch
+  CE_WARM_EPOCH: 80  # candidate elimination warm up epoch
   BATCH_SIZE: 32
   EPOCH: 300
   GIOU_WEIGHT: 2.0
@@ -79,7 +82,7 @@ TRAIN:
   AMP: False
 TEST:
   EPOCH: 300
-  SEARCH_FACTOR: 5.0
-  SEARCH_SIZE: 384
+  SEARCH_FACTOR: 4.0
+  SEARCH_SIZE: 256
   TEMPLATE_FACTOR: 2.0
-  TEMPLATE_SIZE: 192
+  TEMPLATE_SIZE: 128

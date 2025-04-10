@@ -7,3 +7,5 @@ python tracking/test.py ostrack vitb_256_mae_ce_32x4_ep300 --dataset lasot --thr
 
 
 python tracking/train.py --script ostrack --config txz_test --save_dir ./output --mode single --use_wandb 0
+
+python tracking/train.py --script ostrack --config txz_test --save_dir ./output --mode multiple --nproc_per_node 4 --use_wandb 1
