@@ -66,13 +66,19 @@ class OSTrackActor(BaseActor):
         if len(template_list) == 1:
             template_list = template_list[0]
 
-        out_dict = self.net(template=template_list,
+        neck_h_state = [None] * self.cfg.MODEL.NECK.N_LAYERS
+
+        enc_opt = self.net(template=template_list,
                             search=search_img,
                             ce_template_mask=box_mask_z,
                             ce_keep_rate=ce_keep_rate,
-                            return_last_attn=False)
+                            return_last_attn=False,
+                            mode='encoder')
+        
+        encoder_out,neck_out,neck_h_state = self.net(enc_opt=enc_opt,neck_h_state=neck_h_state,mode="neck")
+        outputs = self.net(feature=neck_out, mode="decoder")
 
-        return out_dict
+        return outputs
 
     def compute_losses(self, pred_dict, gt_dict, return_status=True):
         # gt gaussian map

@@ -1,0 +1,9 @@
+cd code/OSTrack
+conda activate ostrack
+python tracking/test.py ostrack vitb_256_mae_ce_32x4_ep300 --dataset lasot --threads 1 --num_gpus 1
+python tracking/analysis_results.py
+
+python tracking/test.py ostrack vitb_256_mae_ce_32x4_ep300 --dataset lasot --threads 1 --num_gpus 1 --debug 1
+
+
+python tracking/train.py --script ostrack --config txz_test --save_dir ./output --mode single --use_wandb 0

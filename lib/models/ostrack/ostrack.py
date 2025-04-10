@@ -3,7 +3,6 @@ Basic OSTrack model.
 """
 import math
 import os
-from typing import List
 
 import torch
 from torch import nn
@@ -42,7 +41,22 @@ class OSTrack(nn.Module):
                 ce_template_mask=None,
                 ce_keep_rate=None,
                 return_last_attn=False,
+                enc_opt=None,
+                neck_h_state=None,
+                feature=None,
+                mode='encoder'
                 ):
+        if mode == "encoder":
+            return self.forward_encoder(template, search, ce_template_mask, ce_keep_rate, return_last_attn)
+        elif mode == "neck":
+            return self.forward_neck(enc_opt,neck_h_state)
+        elif mode == "decoder":
+            return self.forward_decoder(feature)
+        else:
+            raise ValueError
+        
+    def forward_encoder(self, template, search, ce_template_mask=None, ce_keep_rate=None, return_last_attn=False):
+        
         x, aux_dict = self.backbone(z=template, x=search,
                                     ce_template_mask=ce_template_mask,
                                     ce_keep_rate=ce_keep_rate,
