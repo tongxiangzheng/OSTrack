@@ -29,6 +29,7 @@ class Corner_Predictor(nn.Module):
         self.feat_sz = feat_sz
         self.stride = stride
         self.img_sz = self.feat_sz * self.stride
+        self.num_channels=channel
         '''top-left corner'''
         self.conv1_tl = conv(inplanes, channel, freeze_bn=freeze_bn)
         self.conv2_tl = conv(channel, channel // 2, freeze_bn=freeze_bn)
@@ -101,6 +102,7 @@ class CenterPredictor(nn.Module, ):
         self.feat_sz = feat_sz
         self.stride = stride
         self.img_sz = self.feat_sz * self.stride
+        self.num_channels=channel
 
         # corner predict
         self.conv1_ctr = conv(inplanes, channel, freeze_bn=freeze_bn)
@@ -141,7 +143,7 @@ class CenterPredictor(nn.Module, ):
 
     def cal_bbox(self, score_map_ctr, size_map, offset_map, return_score=False):
         max_score, idx = torch.max(score_map_ctr.flatten(1), dim=1, keepdim=True)
-        idx_y = idx // self.feat_sz
+        idx_y = torch.div(idx, self.feat_sz, rounding_mode='trunc')
         idx_x = idx % self.feat_sz
 
         idx = idx.unsqueeze(1).expand(idx.shape[0], 2, 1)
@@ -161,7 +163,7 @@ class CenterPredictor(nn.Module, ):
 
     def get_pred(self, score_map_ctr, size_map, offset_map):
         max_score, idx = torch.max(score_map_ctr.flatten(1), dim=1, keepdim=True)
-        idx_y = idx // self.feat_sz
+        idx_y = torch.div(idx, self.feat_sz, rounding_mode='trunc')
         idx_x = idx % self.feat_sz
 
         idx = idx.unsqueeze(1).expand(idx.shape[0], 2, 1)

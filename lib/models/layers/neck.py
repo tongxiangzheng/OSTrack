@@ -108,7 +108,7 @@ class InteractionBlock(nn.Module):
         # xs = self.extractor(xs.permute(1,0,2),x.permute(1,0,2)).permute(1,0,2)#b,n,c
         if self.extra_extractors is not None:
             for extractor in self.extra_extractors:
-                xs = checkpoint.checkpoint(extractor, xs.permute(1, 0, 2), x.permute(1, 0, 2), use_reentrant=False).permute(1, 0, 2) \
+                xs = checkpoint.checkpoint(extractor, xs.permute(1, 0, 2), x.permute(1, 0, 2),use_reentrant=False).permute(1, 0, 2) \
                     if self.grad_ckpt else extractor(xs.permute(1, 0, 2), x.permute(1, 0, 2)).permute(1, 0,2)  # b,n,c
                 # xs = extractor(xs.permute(1,0,2),x.permute(1,0,2)).permute(1,0,2)
         return x,xs
@@ -297,6 +297,5 @@ def build_neck(cfg,encoder):
     d_model = cfg.MODEL.NECK.D_MODEL
     n_layers = cfg.MODEL.NECK.N_LAYERS
     d_state = cfg.MODEL.NECK.D_STATE
-    grad_ckpt = cfg.MODEL.ENCODER.GRAD_CKPT
-    neck = Mamba_Neck(in_channel=in_channel,d_model=d_model,d_inner=2*d_model,n_layers=n_layers,dt_rank=d_model//16,d_state=d_state,grad_ckpt=grad_ckpt)
+    neck = Mamba_Neck(in_channel=in_channel,d_model=d_model,d_inner=2*d_model,n_layers=n_layers,dt_rank=d_model//16,d_state=d_state,grad_ckpt=True)
     return neck

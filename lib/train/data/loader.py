@@ -2,13 +2,11 @@ import torch
 import torch.utils.data.dataloader
 import importlib
 import collections
-from torch._six import string_classes
 from lib.utils import TensorDict, TensorList
 
 if float(torch.__version__[:3]) >= 1.9 or len('.'.join((torch.__version__).split('.')[0:2])) > 3:
     int_classes = int
-else:
-    from torch._six import int_classes
+
 
 
 def _check_use_shared_memory():
@@ -31,7 +29,7 @@ def ltr_collate(batch):
             # If we're in a background process, concatenate directly into a
             # shared memory tensor to avoid an extra copy
             numel = sum([x.numel() for x in batch])
-            storage = batch[0].storage()._new_shared(numel)
+            storage = batch[0].untyped_storage()._new_shared(numel)
             out = batch[0].new(storage)
         return torch.stack(batch, 0, out=out)
         # if batch[0].dim() < 4:
@@ -53,7 +51,7 @@ def ltr_collate(batch):
         return torch.LongTensor(batch)
     elif isinstance(batch[0], float):
         return torch.DoubleTensor(batch)
-    elif isinstance(batch[0], string_classes):
+    elif isinstance(batch[0], str):
         return batch
     elif isinstance(batch[0], TensorDict):
         return TensorDict({key: ltr_collate([d[key] for d in batch]) for key in batch[0]})
@@ -77,25 +75,17 @@ def ltr_collate_stack1(batch):
     error_msg = "batch must contain tensors, numbers, dicts or lists; found {}"
     elem_type = type(batch[0])
     if isinstance(batch[0], torch.Tensor):
-        out = None
         if _check_use_shared_memory():
-            # If we're in a background process, concatenate directly into a
-            # shared memory tensor to avoid an extra copy
-            numel = sum([x.numel() for x in batch])
-            storage = batch[0].storage()._new_shared(numel)
-            out = batch[0].new(storage)
-        return torch.stack(batch, 1, out=out)
-        # if batch[0].dim() < 4:
-        #     return torch.stack(batch, 0, out=out)
-        # return torch.cat(batch, 0, out=out)
+            # 如果在后台进程中，直接跳过共享内存逻辑
+            return torch.stack(batch, 1)
+        else:
+            return torch.stack(batch, 1)
     elif elem_type.__module__ == 'numpy' and elem_type.__name__ != 'str_' \
             and elem_type.__name__ != 'string_':
         elem = batch[0]
         if elem_type.__name__ == 'ndarray':
-            # array of string classes and object
             if torch.utils.data.dataloader.re.search('[SaUO]', elem.dtype.str) is not None:
                 raise TypeError(error_msg.format(elem.dtype))
-
             return torch.stack([torch.from_numpy(b) for b in batch], 1)
         if elem.shape == ():  # scalars
             py_type = float if elem.dtype.name.startswith('float') else int
@@ -104,7 +94,7 @@ def ltr_collate_stack1(batch):
         return torch.LongTensor(batch)
     elif isinstance(batch[0], float):
         return torch.DoubleTensor(batch)
-    elif isinstance(batch[0], string_classes):
+    elif isinstance(batch[0], str):
         return batch
     elif isinstance(batch[0], TensorDict):
         return TensorDict({key: ltr_collate_stack1([d[key] for d in batch]) for key in batch[0]})
